@@ -1,0 +1,14 @@
+Flask
+Flask-SQLAlchemy
+PyMySQL
+fitz
+frontend
+PyMuPDF
+opencv-python
+Pillow
+markdown
+openai
+pytesseract
+tabulate
+xlsxwriter
+pandas

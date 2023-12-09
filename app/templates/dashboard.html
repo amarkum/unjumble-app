@@ -1,0 +1,180 @@
+{% extends 'fullwidthlayout.html' %}
+{% block content %}
+<title>Unjumble App</title>
+<style>
+.selected-file {
+    border: 2px solid #007bff !important;
+}
+</style>
+<script>
+    let selectedFileId = null; // Initialize selected file ID as null
+    let selectedFileName = null; // Initialize selected file name as null
+
+    function selectImage(fileId, fileName) {
+        // Remove the "selected-file" class from all file sections
+        $(".file-selection").removeClass("selected-file");
+
+        // Add the "selected-file" class to the clicked file section
+        $("#" + fileId).addClass("selected-file");
+
+        // Set the selected file ID and name
+        selectedFileId = fileId;
+        selectedFileName = fileName;
+
+        // Log for debugging
+        console.log("Selected fileID:", fileId, "FileName:", fileName);
+    }
+
+
+    $(document).ready(function () {
+        // Function to display the AI's response in the modal
+
+        function displayAIResponse(query, response, isFollowUp = false) {
+            if (!isFollowUp) {
+                $("#queryText").text(query); // Set the initial query as plain text
+                $("#responseText").html(response.response); // Render the initial AI response as HTML
+            } else {
+                // Append the follow-up query in a similar style as the initial query
+                $("#responseText").append("<br><strong style='font-family: \"Plus Jakarta Sans\", sans-serif; font-weight: 700; font-size: 18px;'>" + query + "</strong><br>");
+                $("#responseText").append(response.response + "<br>");
+            }
+            $("#responseModal").removeClass("hidden");
+
+            // Check for Excel file download
+            if (response.excelSelected && response.downloadUrl) {
+                window.location.href = response.downloadUrl; // Redirect to download URL
+            }
+        }
+
+
+        // Function to handle query submission (main and follow-up)
+        function handleQuerySubmission(query, isFollowUp = false) {
+            if (query) {
+                // Determine which elements to disable based on the query type
+                var inputField = isFollowUp ? "#followUpQuery" : "#queryInput";
+                var button = isFollowUp ? "#followUpButton" : "#answerButton";
+
+                // Disable and grey out only the relevant input and button
+                $(inputField).prop('disabled', true).css('background-color', 'grey');
+                $(button).prop('disabled', true).css('background-color', 'grey');
+
+                // Send POST request to Flask backend with selected file ID and Excel checkbox status
+                $.post("/answer", {
+                    query: query,
+                    fileId: selectedFileId,
+                    excelSelected: isFollowUp ? $("#excelDownloadModal").prop("checked") : $("#excelDownload").prop("checked"),
+                    isFollowUp: isFollowUp
+                }, function (data) {
+                    displayAIResponse(query, data, isFollowUp);
+
+                    // Re-enable and clear the styles for the relevant input and button
+                    $(inputField).val("").prop('disabled', false).css('background-color', '');
+                    $(button).prop('disabled', false).css('background-color', '');
+                });
+            }
+        }
+
+        // Event handlers
+        $("#answerButton").click(function () {
+            handleQuerySubmission($("#queryInput").val().trim());
+        });
+        $("#queryInput").keypress(function (event) {
+            if (event.keyCode === 13) {
+                event.preventDefault();
+                handleQuerySubmission($("#queryInput").val().trim());
+            }
+        });
+        $("#followUpButton").click(function () {
+            handleQuerySubmission($("#followUpQuery").val().trim(), true);
+        });
+        $("#followUpQuery").keypress(function (event) {
+            if (event.keyCode === 13) {
+                event.preventDefault();
+                handleQuerySubmission($("#followUpQuery").val().trim(), true);
+            }
+        });
+        $("#closeResponseModal").click(function () {
+            $("#responseModal").addClass("hidden");
+        });
+    });
+</script>
+<div class="w-full px-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4 px-6 py-6">
+        {% for file in user_files %}
+    <div id="{{ file.file_id }}" class="border overflow-hidden file-selection" data-file-id="{{ file.file_id }}" onclick="selectImage('{{ file.file_id }}', '{{ file.file_name }}')">
+    <div class="w-full h-32 bg-gray-100">
+        {% if file.file_name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')) %}
+            <img src="{{ url_for('uploaded_file', username=user.username, filename=file.file_name) }}"
+                 alt="{{ file.file_name }}" class="object-cover w-full h-full">
+        {% elif file.file_name.lower().endswith('.pdf') %}
+            <img src="{{ url_for('static', filename='icons/pdf-icon.png') }}" alt="PDF"
+                 class="object-cover w-full h-full">
+        {% else %}
+            <img src="{{ url_for('static', filename='icons/other-icon.png') }}" alt="File"
+                 class="object-cover w-full h-full">
+        {% endif %}
+    </div>
+    <p class="p-2 bg-white text-sm truncate">{{ file.file_name }}</p>
+    <a href="{{ url_for('delete_file', file_id=file.file_id) }}"
+       class="block text-center text-red-500 hover:text-red-700 text-sm p-1 bg-gray-100 hover:bg-gray-200">Delete</a>
+</div>
+        {% else %}
+        <p class="text-center w-full"></p>
+        {% endfor %}
+    </div>
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200">
+<div class="flex items-center">
+    <div class="relative flex-grow">
+        <input type="text" id="queryInput" placeholder="Ask any queries related to files.." class="px-4 py-2 border focus:outline-none w-full pr-32">
+        <div class="absolute inset-y-0 right-0 flex items-center pr-2">
+            <label class="inline-flex items-center">
+                <input type="checkbox" id="excelDownload" name="excelDownload" class="h-6 w-6 text-indigo-600 border border-gray-300 rounded-md checked:bg-indigo-600 checked:border-transparent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <span class="ml-2 text-gray-900 font-medium">Download Report</span>
+            </label>
+        </div>
+    </div>
+    <button id="answerButton" class="bg-indigo-500 text-gray-100 px-4 py-2 hover:bg-indigo-700 transition-all duration-300 ease-in-out focus:outline-none">
+        Answer
+    </button>
+    &nbsp;&nbsp;
+    <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" style="display: none;" accept=".jpg, .jpeg, .png, .gif, .pdf, .txt" onchange="form.submit()">
+        <button type="button" onclick="document.getElementById('fileInput').click()"
+                class="tracking-wide font-semibold bg-indigo-500 text-gray-100 py-2 px-4 hover:bg-indigo-700 transition-all duration-300 ease-in-out flex items-center justify-center focus:shadow-outline focus:outline-none">
+            <i class="fas fa-upload mr-2"></i>
+            Upload File
+        </button>
+    </form>
+</div>
+</div>
+    </div>
+</div>
+
+<div id="responseModal" class="hidden fixed z-10 inset-0 overflow-y-auto bg-opacity-75 bg-black flex items-center justify-center">
+    <div class="bg-white p-5 shadow-xl w-3/4 md:w-2/3 text-center" style="max-height: 80vh; overflow-y: auto;">
+        <span id="closeResponseModal" class="cursor-pointer float-right text-gray-600 hover:text-gray-800 text-2xl">×</span>
+        <p class="text-gray-700">
+            <strong>
+                <span id="queryText" class="text-gray-900 header-text"></span>
+            </strong>
+            <br />
+        </p>
+        <div id="responseContainer" class="text-gray-700" style="max-height: 60vh; overflow-y: auto;">
+            <span id="responseText" class="text-gray-900"></span>
+        </div>
+        <div class="mt-4 flex items-center">
+            <div class="relative flex-grow">
+                <input type="text" id="followUpQuery" placeholder="Ask a follow-up question..." class="px-4 py-2 border focus:outline-none w-full pr-32">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-2">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" id="excelDownloadModal" name="excelDownloadModal" class="h-6 w-6 text-indigo-600 border border-gray-300 rounded-md checked:bg-indigo-600 checked:border-transparent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <span class="ml-2 text-gray-900 font-medium">Download Report</span>
+                    </label>
+                </div>
+            </div>
+            <button id="followUpButton" class="bg-indigo-500 text-gray-100 px-4 py-2 hover:bg-indigo-700 transition-all duration-300 ease-in-out focus:outline-none">
+                Ask
+            </button>
+        </div>
+    </div>
+</div>{% endblock %}

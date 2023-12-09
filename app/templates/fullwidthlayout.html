@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-beta.1/css/select2.min.css" rel="stylesheet" />
+    <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500&display=swap" rel="stylesheet">
+    <style>
+            .header-text {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 700; /* Medium weight */
+            font-size: 21px; /* Adjust the size as needed */
+        }
+        .text-content {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 300; /* Medium weight */
+            font-size: 15px; /* Adjust the size as needed */
+        }
+        .header-icon {
+            font-size: 24px; /* Adjust the size as needed */
+        }
+        body {
+            font-family: "Inter", sans-serif;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        form {
+            all: unset;
+        }
+        input[type="submit"], button {
+            background-color: rgb(71, 102, 159) !important;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        input[type="submit"]:hover, button:hover {
+            background-color: rgb(51, 82, 139) !important;
+        }
+        a {
+            color: rgb(51, 82, 159) !important;
+        }
+        a:hover, a:active, a:focus {
+            text-decoration: none !important;
+        }
+         .vertical-divider {
+        border-left: 2px solid #ddd; /* Vertical line color */
+        height: 30px; /* Adjust height as needed */
+    }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-100 text-gray-900">
+    <div class="w-full">
+        <div class="bg-white shadow-md py-1 px-12 flex justify-between items-center">
+            <img href="{{ url_for('dashboard') }}" src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="width: 300px; height: 65px;">
+            <nav class="flex items-center">
+                <span class="header-text">Welcome, {{ user.first_name }} {{ user.last_name }}</span>
+                <span class="vertical-divider mx-4"></span> <!-- Vertical Divider -->
+                <a href="{{ url_for('logout') }}" class="text-blue-500 hover:text-blue-700 header-text">
+                    Logout <i class="fas fa-sign-out-alt header-icon"></i>
+                </a>
+            </nav>
+        </div>
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>
